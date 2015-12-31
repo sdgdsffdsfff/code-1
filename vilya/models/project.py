@@ -415,7 +415,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
             return PERM_PUSH
 
     def get_group_perm(self, user_id):
-        from models.team_group import ProjectGroup
+        from vilya.models.team_group import ProjectGroup
         pgs = ProjectGroup.gets(project_id=self.id)
         perm = None
         for pg in pgs:
@@ -559,6 +559,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
                 (name, owner_id, summary, datetime.now(),
                  product, git_path, name, fork_from, intern_banned))
         except IntegrityError:
+            raise
             return None
 
         if fork_from is not None:
@@ -699,7 +700,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
             return CodeDoubanProject.get(self.fork_from)
 
     def delete(self):
-        from models.nteam import TeamProjectRelationship
+        from vilya.models.nteam import TeamProjectRelationship
         shutil.rmtree(self.git_real_path, ignore_errors=True)
         for hook in self.hooks:
             hook.destroy()
@@ -772,7 +773,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
 
     @property
     def n_open_tickets(self):
-        from models.ticket import Ticket
+        from vilya.models.ticket import Ticket
         return Ticket.get_count_by_proj(self.id)
 
     @property
@@ -826,7 +827,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
     # FIXME: remove this, please use project.mirror
     @property
     def is_mirror_project(self):
-        from models.mirror import CodeDoubanMirror
+        from vilya.models.mirror import CodeDoubanMirror
         return CodeDoubanMirror.get_by_project_id(self.id) is not None
 
     @property
@@ -835,7 +836,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
 
     @property
     def mirror(self):
-        from models.mirror import CodeDoubanMirror
+        from vilya.models.mirror import CodeDoubanMirror
         mirror = CodeDoubanMirror.get_by_project_id(self.id)
         return mirror if mirror else None
 
@@ -897,8 +898,8 @@ class CodeDoubanProject(PropsMixin, TagMixin):
 
     @property
     def open_parent_pulls(self):
-        from models.ticket import Ticket
-        from models.pull import PullRequest
+        from vilya.models.ticket import Ticket
+        from vilya.models.pull import PullRequest
         pulls = []
         parent = self.get_forked_from()
         if parent:
@@ -916,8 +917,8 @@ class CodeDoubanProject(PropsMixin, TagMixin):
 
     @property
     def open_network_pulls(self):
-        from models.ticket import Ticket
-        from models.pull import PullRequest
+        from vilya.models.ticket import Ticket
+        from vilya.models.pull import PullRequest
         pulls = []
         projects = self.get_fork_network()
         for project in projects:
@@ -931,8 +932,8 @@ class CodeDoubanProject(PropsMixin, TagMixin):
 
     @property
     def open_pulls(self):
-        from models.ticket import Ticket
-        from models.pull import PullRequest
+        from vilya.models.ticket import Ticket
+        from vilya.models.pull import PullRequest
         pulls = [PullRequest.get_by_proj_and_ticket(self.id,
                                                     t.ticket_id)
                  for t in Ticket.gets_by_proj(self.id,
@@ -946,7 +947,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
 
     @property
     def groups(self):
-        from models.team_group import ProjectGroup
+        from vilya.models.team_group import ProjectGroup
         rs = ProjectGroup.gets(project_id=self.id)
         return [r.group for r in rs]
 
@@ -968,7 +969,7 @@ class CodeDoubanProject(PropsMixin, TagMixin):
         project = cls.get_by_name(name)
         if not project:
             return None
-        from models.pull import PullRequest
+        from vilya.models.pull import PullRequest
         pull = PullRequest.gets_by(to_project=project.id, ticket_id=pull_id,
                                    force_flush=True)
         if pull:

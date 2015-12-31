@@ -6,12 +6,15 @@ from tests.base import TestCase
 from vilya.models.user import User
 from vilya.models.project import CodeDoubanProject
 from vilya.models.ticket import Ticket
+from tests.utils import delete_project
 
 
 class TestUserPullRequests(TestCase):
 
     def setUp(self):
         TestCase.setUp(self)
+        delete_project('test_pr1')
+        delete_project('test_pr2')
         self.proj1 = CodeDoubanProject.add('test_pr1', owner_id='test')
         self.proj2 = CodeDoubanProject.add('test_pr2', owner_id='test')
 
@@ -36,7 +39,7 @@ class TestUserPullRequests(TestCase):
         title = 'test title'
         desc = 'test desc'
         u = User('testu%s' % time.time())
-        p1_t1 = Ticket.add(self.proj1.id, title, desc, u.username)
+        p1_t1 = Ticket.add(self.proj2.id, title, desc, u.username)
         assert u.get_user_submit_pull_requests() != []
         assert u.n_user_open_submit_pull_requests == 1
 

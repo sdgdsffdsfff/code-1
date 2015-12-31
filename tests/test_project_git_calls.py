@@ -7,6 +7,7 @@ from vilya.libs import gyt
 from vilya.libs.permdir import get_repo_root
 
 from tests.base import TestCase
+from tests.utils import delete_project
 
 T_MSG1 = u'msg1呀'
 T_AUTHOR = u'Test Author 不是我'
@@ -42,12 +43,13 @@ class TestProjectGitCalls(TestCase):
             f.write(content)
             f.close()
             clone.call(['add', filename])
-        clone.call(['commit', '--author', '%s <%s>' % (author,
-                   author_email), '-m', msg], _env=self.env_for_git)
+        clone.call(['commit', '--author', '%s <%s>' % (
+            author, author_email), '-m', msg], _env=self.env_for_git)
         clone.call('push origin HEAD')
         return clone.sha()
 
     def _proj(self, name='test_proj', owner='test_user'):
+        delete_project(name)
         proj = CodeDoubanProject.add(name, owner, create_trac=False)
         return proj
 
@@ -332,7 +334,7 @@ class TestProjectGitCalls(TestCase):
         assert diff.filepath == filename
         assert len(diff.chunks) == 1
         chunk = diff.chunks[0]
-        assert chunk, diff_lines == [('add', u'line1'), ('add', u'line2'), ('add', u'line3'), ('add', u'line4\u4e32\u4e32'), ('other', u' No newline at end of file')]  @ noqa
+        assert chunk, diff_lines == [('add', u'line1'), ('add', u'line2'), ('add', u'line3'), ('add', u'line4\u4e32\u4e32'), ('other', u' No newline at end of file')]  # noqa
         assert chunk.tip_line == u'@@ -0,0 +1,4 @@'
 
     def test_parse_diff_with_bad_message(self):

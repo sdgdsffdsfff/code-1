@@ -2,11 +2,12 @@
 
 from __future__ import absolute_import
 import shutil
-import models.elastic as _el
+import vilya.models.elastic as _el
 
 from nose import SkipTest
 
 from tests.base import TestCase
+from tests.utils import delete_project
 
 from vilya.libs.search import code_unittest_client
 
@@ -28,7 +29,7 @@ from vilya.models.git import make_git_env
 from vilya.models.user import User
 from vilya.models.pull import PullRequest, add_pull
 
-from libs.permdir import get_tmpdir
+from vilya.libs.permdir import get_tmpdir
 
 base_yaml_conf = """
 sphinx_docs:
@@ -104,6 +105,7 @@ class TestProject(TestCase):
         _el.CodeSearch.c.delete()
 
     def _prj(self):
+        delete_project('test')
         prj = CodeDoubanProject.add('test', 'owner', create_trac=False)
         return prj
 
@@ -418,6 +420,7 @@ class TestSrcSearch(TestCase):
         _srcsearch.SrcSearch.update_mapping()
 
     def _prj(self):
+        delete_project('test')
         prj = CodeDoubanProject.add('test', 'owner', create_trac=False)
         return prj
 

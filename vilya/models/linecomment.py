@@ -168,6 +168,11 @@ class LineComment(object):
             return True
         return False
 
+    @classmethod
+    def delete_multi(cls, cs):
+        for c in cs:
+            c.delete()
+
 
 class CommitLineComment(LineComment):
     _target_type = LINECOMMENT_TYPE_COMMIT
@@ -175,7 +180,7 @@ class CommitLineComment(LineComment):
 
     @property
     def target(self):
-        from models.project import CodeDoubanProject
+        from vilya.models.project import CodeDoubanProject
         return CodeDoubanProject.get(self.target_id)
 
     @property
@@ -205,12 +210,12 @@ class PullLineComment(LineComment):
 
     @property
     def target(self):
-        from models.ticket import Ticket
+        from vilya.models.ticket import Ticket
         return Ticket.get(self.target_id)
 
     @property
     def project(self):
-        from models.project import CodeDoubanProject
+        from vilya.models.project import CodeDoubanProject
         return CodeDoubanProject.get(self.target.project_id)
 
     @property
@@ -230,8 +235,8 @@ class PullLineComment(LineComment):
             old_path, new_path, from_oid, to_oid, old_linenum, new_linenum,
             author, content):
         # TODO: dispatch 放到 view 里
-        from models.ticket import Ticket
-        from libs.signals import codereview_signal
+        from vilya.models.ticket import Ticket
+        from vilya.libs.signals import codereview_signal
         from dispatches import dispatch
         comment = super(PullLineComment, cls).add(
             target_id, from_sha, to_sha, old_path, new_path, from_oid,

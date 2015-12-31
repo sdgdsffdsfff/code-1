@@ -93,21 +93,21 @@ class Issue(object):
     @property
     def creator(self):
         if self.creator_id:
-            from models.user import User
+            from vilya.models.user import User
             return User(self.creator_id)
         return None
 
     @property
     def closer(self):
         if self.closer_id:
-            from models.user import User
+            from vilya.models.user import User
             return User(self.closer_id)
         return None
 
     @property
     def assignee(self):
         if self.assignee_id:
-            from models.user import User
+            from vilya.models.user import User
             return User(self.assignee_id)
         return None
 
@@ -284,6 +284,15 @@ class Issue(object):
         issue.add_participant(creator)
         return issue
 
+    def delete(self):
+        store.execute('delete from issues where id=%s', (self.id,))
+        store.commit()
+        mc.delete(MC_KEY_ISSUE % self.id)
+        mc.delete(MC_KEY_ISSUES_IDS_BY_CREATOR_ID % self.creator_id)
+        mc.delete(MC_KEY_ISSUES_IDS_BY_ASSIGNEE_ID % self.assignee_id)
+        mc.delete(MC_KEY_ISSUES_DATA_BY_TARGET % (type, self.target_id))
+        bdb.set(BDB_ISSUE_DESCRIPTION_KEY % self.id, '')
+
     @classmethod
     def get(cls, id):
         rs = store.execute(
@@ -388,7 +397,7 @@ class Issue(object):
     @staticmethod
     @cache(MC_KEY_ISSUE)
     def get_cached_issue(id):
-        from models.issue_utils import ISSUE_TYPE_CLASS
+        from vilya.models.issue_utils import ISSUE_TYPE_CLASS
         issue = Issue.get(id)
         if issue:
             subcls = ISSUE_TYPE_CLASS[issue.type]

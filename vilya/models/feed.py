@@ -46,6 +46,7 @@ class Feed(object):
     def add_action(self, action_data):
         data = json.dumps(action_data, cls=CJsonEncoder)
         # the order of args to zadd is reversed in redis-py from that in redis
+        print rds, data, self.db_key, action_data
         rds.zadd(self.db_key, data, to_timestamp(action_data.get('date')))
         rds.zremrangebyrank(self.db_key, 0, -1 * (MAX_ACTIONS_COUNT + 1))
         rds_pub_signal.send('feed_add_action',
@@ -427,7 +428,7 @@ def add_issue_action(sender, **kw):
         feeds = get_related_feeds(
             author, extra_receivers=to_users, team_ids=[target.id])
     elif issue.target_type == "fair":
-        from models.fair import FAIR_ID
+        from vilya.models.fair import FAIR_ID
         feeds = get_related_feeds(author, extra_receivers=to_users,
                                   team_ids=[FAIR_ID])
     for feed in feeds:
@@ -452,7 +453,7 @@ def add_issue_comment_action(sender, **kw):
         feeds = get_related_feeds(
             author, extra_receivers=to_users, team_ids=[target.id])
     elif issue.target_type == "fair":
-        from models.fair import FAIR_ID
+        from vilya.models.fair import FAIR_ID
         feeds = get_related_feeds(author, extra_receivers=to_users,
                                   team_ids=[FAIR_ID])
     for feed in feeds:

@@ -1,6 +1,7 @@
 # encoding: utf-8
 from base import APITestCase
 from vilya.models.project import CodeDoubanProject
+from tests.utils import delete_project
 
 
 class UserTest(APITestCase):
@@ -28,7 +29,7 @@ class UserTest(APITestCase):
             "/api/user/",
             headers=dict(Authorization="Bearer %s" % api_token.token),
             status=200
-            ).json
+        ).json
         self.assertEqual(ret['name'], user_name)
         self.assertTrue('url' in ret)
         self.assertTrue('avatar_url' in ret)
@@ -40,18 +41,19 @@ class UserTest(APITestCase):
         summary = "test"
         owner_id = "xingben"
         for i in range(5):
+            delete_project("%s%d" % (project_name, i))
             CodeDoubanProject.add(
                 "%s%d" % (project_name, i),
                 owner_id=owner_id,
                 summary=summary,
                 product=product_name
-                )
+            )
         api_token = self.create_api_token('xingben')
         ret = self.app.get(
             "/api/user/repos",
             headers=dict(Authorization="Bearer %s" % api_token.token),
             status=200
-            ).json
+        ).json
         self.assertEquals(len(ret), 5)
-        self.assertTrue('name' in ret)
-        self.assertTrue('description' in ret)
+        self.assertTrue('name' in ret[0])
+        self.assertTrue('description' in ret[0])

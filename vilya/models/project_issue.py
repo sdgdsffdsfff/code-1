@@ -9,6 +9,7 @@ from vilya.models.issue import (
 from vilya.models.tag import TAG_TYPE_PROJECT_ISSUE
 from vilya.models.issue_milestone import IssueMilestone
 from vilya.config import DOMAIN
+from vilya.models.issue import MC_KEY_ISSUES_DATA_BY_TARGET
 
 MC_KEY_PROJECT_ISSUE_N = 'project_issue:v3:%s:%s:n'
 MC_KEY_PROJECT_ISSUE_CREATOR_N = 'project_issue:v3:%s:%s:creator:%s:n'
@@ -42,10 +43,9 @@ class ProjectIssue(Issue):
     def __init__(self, id, project_id, issue_id, number, title=None,
                  creator=None, assignee=None, closer=None,
                  created_at=None, updated_at=None, closed_at=None, type=''):
-        Issue.__init__(self, issue_id, title,
-                       creator, assignee, closer,
-                       created_at, updated_at, closed_at, type=type,
-                       target_id=project_id)
+        Issue.__init__(
+            self, issue_id, title, creator, assignee, closer, created_at,
+            updated_at, closed_at, type=type, target_id=project_id)
         self.id = id
         self.project_id = project_id
         self.issue_id = issue_id
@@ -100,12 +100,12 @@ class ProjectIssue(Issue):
 
     @property
     def target(self):
-        from models.project import CodeDoubanProject
+        from vilya.models.project import CodeDoubanProject
         return CodeDoubanProject.get(self.project_id)
 
     @property
     def proj_name(self):
-        from models.project import CodeDoubanProject
+        from vilya.models.project import CodeDoubanProject
         return CodeDoubanProject.get(self.project_id).name
 
     def _tags_as_dict(self):
@@ -131,7 +131,7 @@ class ProjectIssue(Issue):
             DOMAIN, project_name, self.number)
         d['issue_id'] = self.issue_id
         d['number'] = self.number
-        #'self' does not contain informations like title, desc, etc.
+        # 'self' does not contain informations like title, desc, etc.
         issue = self.get_by_issue_id(self.issue_id)
         d['title'] = issue.title
         d['project_id'] = self.target.id
@@ -190,9 +190,13 @@ class ProjectIssue(Issue):
                     issue.created_at, issue.updated_at, issue.closed_at,
                     issue.type)
 
+    def delete_issue(self):
+        issue = Issue.get(self.issue_id)
+        issue.delete()
+
     @classmethod
     def get_by_proj_name_and_number(cls, proj_name, number):
-        from models.project import CodeDoubanProject
+        from vilya.models.project import CodeDoubanProject
         project = CodeDoubanProject.get_by_name(proj_name)
         project_issue = cls.get(project.id, number=number)
         issue_id = project_issue.issue_id
@@ -295,6 +299,25 @@ class ProjectIssue(Issue):
         mc.delete(MC_KEY_PROJECT_ISSUE_N % (id, 'closed'))
         mc.delete(MC_KEY_PROJECT_ISSUE_N % (id, 'open'))
 
+    def delete(self):
+        issue = self.get_by_issue_id(self.issue_id)
+        user_id = issue.assignee_id
+        creator = issue.creator_id
+        store.execute("delete from project_issues where id=%s", (self.id,))
+        store.commit()
+        mc.delete(MC_KEY_PROJECT_ISSUE_CREATOR_N % (
+            self.project_id, creator, 'open'))
+        mc.delete(MC_KEY_PROJECT_ISSUE_CREATOR_N % (
+            self.project_id, creator, 'closed'))
+        mc.delete(MC_KEY_PROJECT_ISSUE_ASSIGNEE_N % (
+            self.project_id, user_id, 'open'))
+        mc.delete(MC_KEY_PROJECT_ISSUE_ASSIGNEE_N % (
+            self.project_id, user_id, 'closed'))
+        mc.delete(MC_KEY_ISSUES_DATA_BY_TARGET % (
+            self.target_type, self.project_id))
+        self.delete_issue()
+        self._clean_cache(id)
+
     @classmethod
     def _gets_by_project_id(cls, id, order='', state=None):
         '''get project issues by project id with order.'''
@@ -371,7 +394,7 @@ class ProjectIssue(Issue):
                                                     state, people_attr)
             return project_issues[start:start + limit], len(project_issues)
         else:
-            #FIXME:
+            # FIXME:
             project_issues = cls.gets_by_project_id(project_id, state, limit,
                                                     start, order)
             return project_issues, cls.get_count_by_project_id(
@@ -423,20 +446,20 @@ class ProjectIssue(Issue):
 
     @property
     def milestone_name(self):
-        from models.milestone import Milestone
+        from vilya.models.milestone import Milestone
         m_id = self.milestone_id
         m = Milestone.get_by(m_id) if m_id else None
         return m.name if m else ''
 
     @property
     def milestone_percentage(self):
-        from models.milestone import Milestone
+        from vilya.models.milestone import Milestone
         m_id = self.milestone_id
         m = Milestone.get_by(m_id) if m_id else None
         return m.percentage if m else 0
 
     def add_milestone(self, user, name=None, milestone_id=None):
-        from models.milestone import Milestone
+        from vilya.models.milestone import Milestone
         target = self.target
         if name:
             ms = Milestone.get_by_project(target, name=name)
@@ -493,4 +516,4 @@ class ProjectIssue(Issue):
             issues = filter(lambda x: x.assignee_id == assignee.name, issues)
         if creator:
             issues = filter(lambda x: x.creator_id == creator.name, issues)
-        return dict(issues=issues[start:start+limit], total=len(issues))
+        return dict(issues=issues[start:start + limit], total=len(issues))
